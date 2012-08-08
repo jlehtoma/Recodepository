@@ -1,6 +1,8 @@
 library("RPostgreSQL")
 
 # For examples, see https://code.google.com/p/rpostgresql/
+# NOTE!!! For security reasons config.R file is not included in this repository
+# Ask Joona to send it via email
 
 connect.rli <- function(config.file="config.R") {
   
