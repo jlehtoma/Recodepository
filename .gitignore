@@ -4,3 +4,4 @@
 *.Rproj
 README.html
 R/config.R
+data/*
