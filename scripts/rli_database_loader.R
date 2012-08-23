@@ -7,6 +7,7 @@ if (!require("reshape")){
 }
 
 source("R/postgresql.R")
+source("R/utilities.R")
 
 # Install dependencies if not already installed
 install.deps()
@@ -41,13 +42,18 @@ desc.hab  <- data.hab.threats[c(1:3)]
 # 1.3 simplify the habitat threats table by dithing long descriptions
 data.hab.threats <- data.hab.threats[c(1:2, 4:length(data.hab.threats))]
 mdata.hab.threats  <- melt(data.hab.threats, c("ID", "Habitat_RL"), 
-                           na.rm=TRUE)
+                           variable_name="Threat", na.rm=TRUE)
+# 1.4 Habitat_RL is redundant
+mdata.hab.threats <- mdata.hab.threats[c(1, 3:4)]
+# 1.5 fix field names
+colnames(mdata.hab.threats) <- c("ID", "Threat", "Code")
+
 
 
 # 2. Load the habitat descriptions
 desc.hab.threats  <- readWorksheet(wb.hab.threats, 
                                    sheet = "Definition of Threats (Finnish)")
-# 2.1 Add a numerical identifier ID
-desc.hab.threats <- data.frame(ID=1:nrow(data.hab.threats), data.hab.threats)
+# 2.1 Update the field names
+colnames(desc.hab.threats) <- c("Threat", "Definition")
 
 
