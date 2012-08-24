@@ -26,3 +26,7 @@ readWorksheet.disjoint <- function(wb, sheet, regions, ...) {
   
   return(data.regions)
 }
+
+hierarchy <- function(x) {
+  
+}
