@@ -29,4 +29,16 @@ fetch.rli.data <- function(what="*", table, rows) {
   return(fetch(rs, n=rows))
 }
 
-
+upload <- function(con, df, table.name, overwrite=FALSE) {
+  if (dbExistsTable(con, table.name)) {
+    
+    if (overwrite) {
+      message(paste("Overwriting old table:", table.name))
+      return(dbWriteTable(con, table.name, df, overwrite=TRUE))
+    } else {
+      stop(paste("Table", table.name, "exists and overwrite is off."))
+    }
+  } else {
+    return(dbWriteTable(con, table.name, df))
+  }
+} 
