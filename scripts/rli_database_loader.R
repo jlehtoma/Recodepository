@@ -49,21 +49,28 @@ rlh.data.threats <- readWorksheet.disjoint(rlh.wb.threats,
 rlh.data.threats <- data.frame(ID=1:nrow(rlh.data.threats), rlh.data.threats)
 
 # 1.2 separate only the first 2 columns (also the habitat definition table)
+# and rename the columns
 rlh.desc.habitat  <- rlh.data.threats[c(1:3)]
+colnames(rlh.desc.habitat) <- c("HabitatID", "ShortDesc", "LongDesc")
+
+# 1.3. Get rid of white spaces in ShortDesc
+rlh.desc.habitat$ShortDesc <- gsub(" ", "", rlh.desc.habitat$ShortDesc)
+
 # 1.3 simplify the habitat threats table by ditching long descriptions
 rlh.data.threats <- rlh.data.threats[c(1:2, 4:length(rlh.data.threats))]
 rlh.mdata.threats  <- melt(rlh.data.threats, c("ID", "Habitat_RL"), 
                            variable_name="Threat", na.rm=TRUE)
+
 # 1.4 Get rid off "."s in Threat codes
 rlh.mdata.threats$Threat <- gsub("\\.", "", rlh.mdata.threats$Threat)
 
 # 1.5 Habitat_RL is redundant
 rlh.mdata.threats <- rlh.mdata.threats[c(1, 3:4)]
 # 1.6 fix field names
-colnames(rlh.mdata.threats) <- c("ID", "Threat", "Code")
+colnames(rlh.mdata.threats) <- c("HabitatID", "ThreatID", "PresentIn")
 # 1.7 Done! Upload data into database
-upload(con, rlh.desc.habitat, "rlh_desc_habitat", overwrite=TRUE)
-upload(con, rlh.mdata.threats, "rlh_data_threat", overwrite=TRUE)
+upload(con, rlh.desc.habitat, "Habitat", overwrite=TRUE)
+upload(con, rlh.mdata.threats, "HabitatThreat", overwrite=TRUE)
 
 
 # 2. Habitat descriptions -------------------------------------------------
@@ -71,10 +78,15 @@ upload(con, rlh.mdata.threats, "rlh_data_threat", overwrite=TRUE)
 # 2.1 Load the habitat descriptions
 rlh.desc.threat  <- readWorksheet(rlh.wb.threats, 
                                    sheet = "Definition of Threats (Finnish)")
+
 # 2.2 Update the field names
-colnames(rlh.desc.threat) <- c("Threat", "Definition")
-# 2.3 Done! Upload data into database
-upload(con, rlh.desc.threat, "rlh_desc_threat", overwrite=TRUE)
+colnames(rlh.desc.threat) <- c("ShortDesc", "LongDesc")
+
+# 2.3 Create an ID column
+rlh.desc.threat <- data.frame(ThreatID=1:nrow(rlh.desc.threat), rlh.desc.threat)
+
+# 2.4 Done! Upload data into database
+upload(con, rlh.desc.threat, "Threat", overwrite=TRUE)
 
 # 3. Conservation programmes and habitats ---------------------------------
 
@@ -87,18 +99,51 @@ rls.wb.progs <- loadWorkbook(rls.file.progs)
 # 3.1 Load the actual data
 rls.data.progs <- readWorksheet.disjoint(rls.wb.progs, 
                                            sheet = "RL_hab&Cons.prog.",
-                                           region = "A1:N226;A30:N77;A82:N82")
-# 3.2 Add a numerical identifier ID
-rls.data.progs <- data.frame(ID=1:nrow(rls.data.progs), rls.data.progs)
+                                           region = "A1:L26;A30:L77;A82:L82")
 
-# 3.3 separate only the first 2 columns (also the habitat definition table)
+# 3.2 First, a little detour. A table defining all the unique conservation
+# programmes needs to be defined. The the unique names.d
+cons.progs.names <- colnames(rls.data.progs)[3:ncol(rls.data.progs)]
+
+# 3.3. Generate long descriptions for the programmes (this should probably
+# be done in the Excel file?)
+
+cons.progs.longnames <- c("Etelä-Suomen metsien monimuotoisuusohjelma",
+                         "VN:n päätökset kansallispuistoista",
+                         "Rantojensuojeluohjelma",
+                         "Lintuvesien suojeluohjelma",
+                         "Turvemaiden suojeluohjelma",
+                         "Lehtojen suojeuohjelma",
+                         "Vanhojen metsien suojeluohjelma",
+                         "Lajiensuojeluohjelma",
+                         "Maatalouden ympäristötuet",
+                         "Kestävän metsätalouden rahoituslaki")
+
+# 3.4 Create a new data frame fo
+rls.desc.progs <- data.frame(ProgrammeID=1:length(cons.progs.names),
+                             ShortDesc=cons.progs.names,
+                             LongDesc=cons.progs.longnames)
+
+# 3.5 Back to the main story, add a numerical identifier ID
+rls.data.progs <- data.frame(HabitatID=1:nrow(rls.data.progs), rls.data.progs)
+
+# 3.6  The ID should match with that of rlh.desc.threat, check
+if (!all(rls.data.progs$Habitat_RL == rlh.desc.habitat$ShortDesc)) {
+  stop("Habitat categories in rls.data.progs and rlh.desc.habitat do not match")
+}
+
+# 3.7 separate only the first 2 columns (also the habitat definition table)
 rls.desc.hab  <- rls.data.progs[c(1:3)]
-# 3.4 simplify the habitat threats table by ditching long descriptions
+
+# 3.8 simplify the habitat threats table by ditching long descriptions
 rls.data.progs <- rls.data.progs[,c(1:2, 4:length(rls.data.progs))]
-rls.mdata.progs  <- melt(rls.data.progs, c("ID", "Habitat_RL"), 
-                           variable_name="Programme", na.rm=TRUE)
-# 3.5 Done! Upload data into database
-upload(con, rls.mdata.progs, "rls_data_progs", overwrite=TRUE)
+rls.mdata.progs  <- melt(rls.data.progs[,c(1, 3:length(rls.data.progs))], 
+                         c("HabitatID"), variable_name="ProgrammeID", 
+                         na.rm=TRUE)
+
+# 3.9 Done! Upload data into database
+upload(con, rls.desc.progs, "Programmes", overwrite=TRUE)
+upload(con, rls.mdata.progs, "ProgrammeTargets", overwrite=TRUE)
 
 # 4. Conservation programmes  and hectares (ha) --------------------------
 
@@ -114,20 +159,37 @@ rls.data.progs.ha <- readWorksheet.disjoint(rls.wb.progs.ha,
 
 # 4.3 Fill in the column names with right years
 colnames(rls.data.progs.ha) <- c("Programme", as.character(1996:2010))
+
 # 4.4 Get rid of some of the insignificant rows and replace NAs with 0s
 rls.data.progs.ha <- subset(rls.data.progs.ha, 
                             !is.na(rls.data.progs.ha$Programme))
 rls.data.progs.ha[is.na(rls.data.progs.ha)] <- 0
 
-# 4.5 Melt the data for plotting
+# 4.5 Re-order the data frame based on the programme name, INVERTLY! This is
+# because of quirks in how ggplot2 plots these...
+rls.data.progs.ha <- rls.data.progs.ha[with(rls.data.progs.ha, 
+                                            order(Programme, decreasing=TRUE)), ]
+
+# 4.6 Instead of the programme name (as string), use the ProgrammeID (int) from
+# rls.data.progs
+rls.data.progs.ha.ids <- merge(rls.desc.progs, rls.data.progs.ha, by.x="ShortDesc", 
+                               by.y="Programme")
+rls.data.progs.ha.ids <- rls.data.progs.ha.ids[,c(2, 4:ncol(rls.data.progs.ha.ids))]
+
+# 4.7 Melt the data for storing...
+rls.mdata.progs <- melt(rls.data.progs.ha.ids, c("ProgrammeID"), 
+                        variable_name="Year")
+
+# 4.8 ... and for plotting
 rls.mdata.progs.ha <- melt(rls.data.progs.ha, c("Programme"), 
                            variable_name="Year")
 
-# 4.6 Upload data into database
-upload(con, rls.mdata.progs.ha, "rls_data_progs_ha", overwrite=TRUE)
-
-# 4.7 Rename "value" to "Hectares"
+# 4.9 Rename "value" to "Hectares"
+colnames(rls.mdata.progs) <- c(colnames(rls.mdata.progs)[1:2], "Hectares")
 colnames(rls.mdata.progs.ha) <- c(colnames(rls.mdata.progs.ha)[1:2], "Hectares")
+
+# 4.10 Upload data into database
+upload(con, rls.mdata.progs, "Implementation", overwrite=TRUE)
 
 a <- ggplot(rls.mdata.progs.ha, aes(x = Year, y = Hectares, fill = Programme)) + 
      opts(title = "Conservation allocation by programme") +
@@ -140,6 +202,7 @@ c <- b + facet_grid(Programme ~ .) + opts(legend.position = "none")
 rls.mdata.progs.ha.total <- cast(rls.mdata.progs.ha, Year ~ ., sum)
 rls.mdata.progs.ha.total <- rename(rls.mdata.progs.ha.total, 
                                    c(`(all)` = "Hectares"))
+
 rls.mdata.progs.ha.total$Programme <- "Total"
 df.m.t <- rbind(rls.mdata.progs.ha.total, rls.mdata.progs.ha)
 c1 <- c %+% df.m.t
