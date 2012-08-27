@@ -1,10 +1,10 @@
 ## DATA DESCRIPTION
 
 *** 
-Dataset: `Habitats_RL and Habitat_threats 0428.xlsx`
-Creator: Daniel
-Database loaders: 1-2
-Database tables: Habitat, HabitatThreat, Threat
+Dataset: `Habitats_RL and Habitat_threats 0428.xlsx`  
+Creator: Daniel  
+Database loaders: 1-2  
+Database tables: **Habitat**, **HabitatThreat**, **Threat**  
 
 Excel workbook has 2 sheets:
 
@@ -24,10 +24,10 @@ Sheet 1 is divided into 2 tables:
 Sheet 2 is table `Threat`.
 
 ***
-Dataset: `Habitats_RL and Cons_Prog 0427.xlsx`
-Creator: Anni
-Database loaders: 3
-Database tables: ProgrammeTargets, Implementation, Programmes
+Dataset: `Habitats_RL and Cons_Prog 0427.xlsx`  
+Creator: Anni  
+Database loaders: 3  
+Database tables: **ProgrammeTargets**, **Implementation**, **Programmes**  
 
 Excel workbook has 1 sheet:
 
