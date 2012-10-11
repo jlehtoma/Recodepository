@@ -3,4 +3,6 @@
 .RData
 *.Rproj
 README.html
-
+R/config.R
+data/*.xsl
+data/*.xlsx

@@ -146,6 +146,46 @@ criteria.count <- function(data.parsed) {
   return(df.parsed)
 }
 
+parse.habitat <- function(x) {
+  
+  # Count the number of characters in the string to be parsed 
+  n <- nchar(x)
+  
+  # Auxillary identifiers
+  aux <- c("v", "h", "p")
+
+  level1 <- NULL
+  level2 <- NULL
+  level3 <- NULL
+  
+  check.upper <- function(y) {
+    if (!y == toupper(y)) {
+      warning("There is only 1 charcter in the token, but it is not in upper case")  
+    }
+    return(y)
+  }
+  
+  # If the length is 1, the string should be first level code
+  if (n == 1) {
+    # Check if the charcter is upper case
+    check.upper(x)
+    level1 <- x
+  } else {
+    chars <- unlist(str_split(x, ""))[1:nchar(x)+1]
+    
+    for (i in 1:length(chars)) {
+      if (i == 1) {
+        check.upper(x)
+        level1 <- x
+      } else {
+        
+      }
+    }
+        
+  }
+  
+}
+
 ## TEST
 
 str <- "B1ab(i,ii,v)c(iii,iv)+2b(i)c(ii,v)"
