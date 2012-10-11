@@ -1,6 +1,6 @@
 library(raster)
 library(rgdal)
-library(rgeos)
+library(plyr)
 
 buffer.zonal <- function(point.shp, id.field, target.raster, buffer.dist) {
   
@@ -19,7 +19,7 @@ buffer.zonal <- function(point.shp, id.field, target.raster, buffer.dist) {
   # Convert the pixel counts into fractions
   pixel.table.frac <- lapply(pixel.table, function(x) {sapply(x, function(y, z=sum(x)) {y/z} )})
   # Let's return a data frame. ID are replaced with the original shp ids
-  pixel.df.frac <- as.data.frame(do.call("rbind", pixel.table.frac))
+  pixel.df.frac <- as.data.frame(do.call("rbind.fill", pixel.table.frac))
   pixel.df.frac <- cbind(shp@data[id.field], pixel.df.frac)
   
   return(pixel.df.frac)
