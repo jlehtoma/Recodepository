@@ -1,11 +1,50 @@
 library(raster)
 library(rgdal)
 library(plyr)
+library(ggmap)
+
+# Map KKJ zones into appropriate EPSG codes
+KKJ.CODES <- list("0" = "+init=epsg:2391", "1" = "+init=epsg:2391", 
+                  "2" = "+init=epsg:2392", "3" = "+init=epsg:2393", 
+                  "4" = "+init=epsg:2394", 
+                  "5" = "+init=epsg:3387")
+
+address2df <- function(df, address.field, ...) {
+  
+  coords <- .geocode(unlist(df[address.field]), ...)
+  coords <- do.call("rbind", coords)
+  return(cbind(df, coords))
+  
+}
+
+address2sppoints <- function(df, address.field, proj4.string=NULL) {
+  
+  coords <- .geocode(df[address.field])
+  
+  # Google will return coordinates WGS84
+  sp.data <- SpatialPointsDataFrame(coords, df, 
+                                    proj4string = CRS("+proj=longlat +datum=WGS84"))
+  # Is projection needed
+  if (proj4.string) {
+    library("rgdal")
+    message(paste("Projecting from WGS84 to", proj4.string))
+    sp.data <- spTransform(sp.data, CRS(proj4.string))
+  }
+  
+  return(sp.data)
+}
 
 buffer.zonal <- function(point.shp, id.field, target.raster, buffer.dist) {
   
-  # Read in the point shapefile
-  shp <- shapefile(point.shp)
+  if (class(point.shp) == "character") {
+    # Read in the point shapefile
+    shp <- shapefile(point.shp)
+  } else if (class(point.shp) == "SpatialPointsDataFrame") {
+    shp <- point.shp
+  } else {
+    stop(paste("Object type must be a path to a shapefile or a SpatialPointsDataFrame object, not", class(point.shp)))
+  }
+  
   # Extract the zonal data from the target raster
   shp.buffer.extract = extract(raster(target.raster), shp, buffer=2000)
   
@@ -34,7 +73,86 @@ buffer.zonal <- function(point.shp, id.field, target.raster, buffer.dist) {
   return(result.df)
 }
 
-point.shp <- "H:/Data/People/Ilkka/FINRISK/Shapefiles/FINRISK_kohteet_sample.shp"
-target.raster <- "H:/Data/People/Ilkka/FINRISK/Rasters/clc_fi25_paaluokat_sample.img"
+KKJ2YKJ <- function(sp.obj, from=NA) {
+  
+  # Check if the object is spatial
+  if (!any(is(sp.obj) == "Spatial")) {
+    stop("Provided object is not Spatial")
+  }
+  
+  # Check if the sp object has a CRS defined and if it corresponds to what the 
+  # user is claiming
+  proj4.string.from <- proj4string(sp.obj) 
+  if (is.na(proj4.string.from) && is.na(from)) {
+    stop("sp object has no projection defined and no KKJ zone is provided by user")
+  } else if (is.na(proj4.string.from) && from) {
+    proj4.string.from <- KKJ.CODES[[as.character(from)]]
+    proj4string(sp.obj) <- proj4.string.from
+  } 
+  
+  # We're always projecting to KKJ3 (=YKJ)
+  projected.sp <- spTransform(sp.obj, 
+                              CRS(KKJ.CODES[["3"]]))
+  return(projected.sp)
+}
 
-result <- buffer.zonal(point.shp, "ID", target.raster, 2000)
+# Private functions -------------------------------------------------------
+
+.geocode <- function(addresses, cache=TRUE) {
+  
+  # Check the inputs
+  if (typeof(addresses) != "character") {
+    stop("Addresses must be provided as a character vector")
+  }
+  
+  cache.dir <- ".cache"
+  cache.file <- file.path(cache.dir, "coords.RData")
+  
+  if (cache && !file.exists(cache.dir)) {
+    dir.create(cache.dir)
+  }
+  
+  if (cache) { 
+    if (file.exists(cache.file)) {
+      
+      message("Trying cached coordinates")
+      load(cache.file)
+      
+      # Check whether the addresses are in the cache
+      cached.coords <- coords[addresses]
+      notin.cache.addresses <- addresses[!addresses %in% names(coords)]
+      
+      if (length(notin.cache.addresses) > 0) {
+        message("Not all requested addresses found in the cache, getting the rest")
+        addresses <- notin.cache.addresses
+      } else {
+        return(cached.coords)
+      }
+    }
+  }
+  
+  queries <- geocodeQueryCheck()
+  
+  if (queries < length(addresses)) {
+    warning(paste("Daily Google API query quota", queries, 
+                  "will be exceeded."))
+  }
+  
+  coords <- list()
+  
+  for (i in 1:length(addresses)) {
+    
+    coords[[addresses[[i]][1]]] <- geocode(addresses[[i]][1])
+  }
+  
+  if (cache) {
+    save(coords, file=cache.file)
+  }
+  
+  return(coords)
+}
+
+#point.shp <- "H:/Data/People/Ilkka/FINRISK/Shapefiles/FINRISK_kohteet_sample.shp"
+#target.raster <- "H:/Data/People/Ilkka/FINRISK/Rasters/clc_fi25_paaluokat_sample.img"
+
+#result <- buffer.zonal(point.shp, "ID", target.raster, 2000)
