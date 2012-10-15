@@ -62,7 +62,7 @@ The 2 Excel workbooks have both 1 sheet:
   different programmes at different years. Note that column `cons_name` defines
   which rows are actually finally included in the data read in.
 
-  2. 1. `Cons_euros`: a table showing how much euros have been spent in 
+  2. `Cons_euros`: a table showing how much euros have been spent in 
   different programmes at different years. Note that column `cons_name` defines
   which rows are actually finally included in the data read in. Also note that
   funding for METSO (2005-2010) has been derived from another Excel-file 
