@@ -4,7 +4,7 @@
 Dataset: `Habitats_RL and Habitat_threats 0428.xlsx`  
 Creator: Daniel  
 Database loaders: 1-2  
-Database tables: **Habitat**, **HabitatThreat**, **Threat**  
+Database tables: **habitat**, **habitat_threat**, **threat**  
 
 Excel workbook has 2 sheets:
 
@@ -17,9 +17,9 @@ Excel workbook has 2 sheets:
 
 Sheet 1 is divided into 2 tables:
 
-  3. `Habitat`: Description of the habitat classes
+  3. `habitat`: Description of the habitat classes
 
-  4. `HabitatThreat`: Actual threat classes for habitats
+  4. `habitat_threat`: Actual threat classes for habitats
 
 Sheet 2 is table `Threat`.
 
@@ -27,7 +27,7 @@ Sheet 2 is table `Threat`.
 Dataset: `Habitats_RL and Cons_Prog 0427.xlsx`  
 Creator: Anni  
 Database loaders: 3  
-Database tables: **ProgrammeTargets**, **Implementation**, **Programmes**  
+Database tables: **programme_targets**, **implementation**, **programmes**  
 
 Excel workbook has 1 sheet:
 
@@ -39,20 +39,38 @@ Excel workbook has 1 sheet:
   2. **NOTE** Columns `Habitat threat` and `secondary categories` removed,
      `HERB-RICH FORESTS` renamed to `HERB_RICH_FORESTS`
 
-Sheet 1 is divided into 3(4) tables:  
+Sheet 1 is divided into 3 tables:  
 
-  1. `Habitat`: Description of the habitat classes used (NOTE: this is the
+  1. `habitat`: Description of the habitat classes used (NOTE: this is the
       same as 2.4!!! -> only one should be uploaded to the database)
     
-  2. `ProgrammeTargets`: melted data on which spp RL habitats are affected by 
+  2. `programme_targets`: melted data on which spp RL habitats are affected by 
       which conservation programmes
 
-  3. `Implementation`: melted data on how much of each conservation programme
-      has been implemented (in hectares) per year 1996-2010. **TODO** the same
-      table should also house the amount of euros spent per year when available.
-
-  4. `Programmes`: table describing (in short and long versions) all the 
-      programmes involved. **TODO** There is no long description of the 
-      programmes so far, these will have to be developed.
+  3. `programmes`: table describing (in short and long versions) all the 
+      programmes involved.
 
 ***
+Datasets: `summary_of_hectares.xlsx` and `summary_of_funding.xlsx`
+Creator: ???
+Database loaders: 2  
+Database tables: **implementation**   
+
+The 2 Excel workbooks have both 1 sheet:
+
+  1. `Cons_ha`: a table showing how much hectares have been included in 
+  different programmes at different years. Note that column `cons_name` defines
+  which rows are actually finally included in the data read in.
+
+  2. 1. `Cons_euros`: a table showing how much euros have been spent in 
+  different programmes at different years. Note that column `cons_name` defines
+  which rows are actually finally included in the data read in. Also note that
+  funding for METSO (2005-2010) has been derived from another Excel-file 
+  (`12T-2005-2011-METSO-Toteutus-EUROa-ELYittäin-tilasto.xls`) that Anni 
+  received from Saija.
+  
+After both sheets have been read in, they have been merges into a single table:
+
+  1. `implementation`: melted data on how much of each conservation programme
+      has been implemented (in hectares) per year 1996-2010 and how many euros
+      have been spent during the same time.
