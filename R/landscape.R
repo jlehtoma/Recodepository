@@ -34,7 +34,11 @@ address2sppoints <- function(df, address.field, proj4.string=NULL) {
   return(sp.data)
 }
 
-buffer.zonal <- function(point.shp, id.field, target.raster, buffer.dist) {
+buffer.zonal <- function(point.shp, id.fields, target.raster, buffer.dist) {
+  
+  if (class(target.raster) == "character") {
+    target.raster <- raster(target.raster)
+  }
   
   if (class(point.shp) == "character") {
     # Read in the point shapefile
@@ -45,23 +49,34 @@ buffer.zonal <- function(point.shp, id.field, target.raster, buffer.dist) {
     stop(paste("Object type must be a path to a shapefile or a SpatialPointsDataFrame object, not", class(point.shp)))
   }
   
-  # Buffer the points. Note that gBuffer will return a SpatialPolygons object.
-  # We'll need to unite that with the original attribute data
-  #shp.buffer.poly <- gBuffer(shp, byid=TRUE, width=buffer.dist)
-  #shp.buffer <- SpatialPolygonsDataFrame(shp.buffer.poly, shp@data)
-  #browser()
   # Extract the zonal data from the target raster
-  shp.buffer.extract = extract(raster(target.raster), shp, buffer=2000)
+  shp.buffer.extract = extract(target.raster, shp, buffer=buffer.dist)
   
   # Calculate the amount of pixels of each class in each polygon
   pixel.table <- lapply(shp.buffer.extract, table)
   # Convert the pixel counts into fractions
   pixel.table.frac <- lapply(pixel.table, function(x) {sapply(x, function(y, z=sum(x)) {y/z} )})
-  # Let's return a data frame. ID are replaced with the original shp ids
-  pixel.df.frac <- as.data.frame(do.call("rbind.fill", pixel.table.frac))
-  pixel.df.frac <- cbind(shp@data[id.field], pixel.df.frac)
+  # Convert the list of table matrices into a list of data frames so that 
+  # rbind.fill can be used. Note that some transposing must be done.
   
-  return(pixel.df.frac)
+  for (i in 1:length(pixel.table.frac)) {
+    header <- names(pixel.table.frac[[i]])
+    dat <- as.data.frame(t(pixel.table.frac[[i]]))
+    colnames(dat) <- header
+    pixel.table.frac[[i]] <- dat
+  }
+  # Join the list into a single data frame with missing counts (for classes) as
+  # NAs
+  pixel.table.frac.df <- do.call("rbind.fill", pixel.table.frac)
+  # Re-order the dataframe by column names
+  pixel.table.frac.df <- pixel.table.frac.df[,order(names(pixel.table.frac.df))]
+  # Replace the missing classes (NAs) with zeros (0)
+  pixel.table.frac.df[is.na(pixel.table.frac.df)] <- 0
+  # Add in the original ID fields and rownumbers
+  result.df <- cbind(shp@data[id.fields], pixel.table.frac.df)
+  rownames(result.df) <- rownames(shp@data)
+  
+  return(result.df)
 }
 
 KKJ2YKJ <- function(sp.obj, from=NA) {
@@ -143,7 +158,7 @@ KKJ2YKJ <- function(sp.obj, from=NA) {
   return(coords)
 }
 
-point.shp <- "H:/Data/People/Ilkka/FINRISK/Shapefiles/FINRISK_kohteet_sample.shp"
+#point.shp <- "H:/Data/People/Ilkka/FINRISK/Shapefiles/FINRISK_kohteet_sample.shp"
 #target.raster <- "H:/Data/People/Ilkka/FINRISK/Rasters/clc_fi25_paaluokat_sample.img"
 
 #result <- buffer.zonal(point.shp, "ID", target.raster, 2000)
