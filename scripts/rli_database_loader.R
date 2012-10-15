@@ -69,8 +69,8 @@ rlh.mdata.threats <- rlh.mdata.threats[c(1, 3:4)]
 # 1.6 fix field names
 colnames(rlh.mdata.threats) <- c("HabitatID", "ThreatID", "PresentIn")
 # 1.7 Done! Upload data into database
-upload(con, rlh.desc.habitat, "Habitat", overwrite=TRUE)
-upload(con, rlh.mdata.threats, "HabitatThreat", overwrite=TRUE)
+upload(con, rlh.desc.habitat, "habitat", overwrite=TRUE)
+upload(con, rlh.mdata.threats, "habitat_threat", overwrite=TRUE)
 
 
 # 2. Habitat descriptions -------------------------------------------------
@@ -86,7 +86,7 @@ colnames(rlh.desc.threat) <- c("ShortDesc", "LongDesc")
 rlh.desc.threat <- data.frame(ThreatID=1:nrow(rlh.desc.threat), rlh.desc.threat)
 
 # 2.4 Done! Upload data into database
-upload(con, rlh.desc.threat, "Threat", overwrite=TRUE)
+upload(con, rlh.desc.threat, "threat", overwrite=TRUE)
 
 # 3. Conservation programmes and habitats ---------------------------------
 
@@ -113,7 +113,7 @@ cons.progs.longnames <- c("Etelä-Suomen metsien monimuotoisuusohjelma",
                          "Rantojensuojeluohjelma",
                          "Lintuvesien suojeluohjelma",
                          "Turvemaiden suojeluohjelma",
-                         "Lehtojen suojeuohjelma",
+                         "Lehtojen suojeluohjelma",
                          "Vanhojen metsien suojeluohjelma",
                          "Lajiensuojeluohjelma",
                          "Maatalouden ympäristötuet",
@@ -142,8 +142,8 @@ rls.mdata.progs  <- melt(rls.data.progs[,c(1, 3:length(rls.data.progs))],
                          na.rm=TRUE)
 
 # 3.9 Done! Upload data into database
-upload(con, rls.desc.progs, "Programmes", overwrite=TRUE)
-upload(con, rls.mdata.progs, "ProgrammeTargets", overwrite=TRUE)
+upload(con, rls.desc.progs, "programmes", overwrite=TRUE)
+upload(con, rls.mdata.progs, "programme_targets", overwrite=TRUE)
 
 # 4. Conservation programmes  and hectares (ha) --------------------------
 
@@ -177,21 +177,18 @@ rls.data.progs.ha.ids <- merge(rls.desc.progs, rls.data.progs.ha, by.x="ShortDes
 rls.data.progs.ha.ids <- rls.data.progs.ha.ids[,c(2, 4:ncol(rls.data.progs.ha.ids))]
 
 # 4.7 Melt the data for storing...
-rls.mdata.progs <- melt(rls.data.progs.ha.ids, c("ProgrammeID"), 
-                        variable_name="Year")
-
-# 4.8 ... and for plotting
-rls.mdata.progs.ha <- melt(rls.data.progs.ha, c("Programme"), 
+rls.mdata.progs.ha <- melt(rls.data.progs.ha.ids, c("ProgrammeID"), 
                            variable_name="Year")
 
+# 4.8 ... and for plotting
+rls.mdata.progs.ha.plot <- melt(rls.data.progs.ha, c("Programme"), 
+                                variable_name="Year")
+
 # 4.9 Rename "value" to "Hectares"
-colnames(rls.mdata.progs) <- c(colnames(rls.mdata.progs)[1:2], "Hectares")
 colnames(rls.mdata.progs.ha) <- c(colnames(rls.mdata.progs.ha)[1:2], "Hectares")
+colnames(rls.mdata.progs.ha.plot) <- c(colnames(rls.mdata.progs.ha.plot)[1:2], "Hectares")
 
-# 4.10 Upload data into database
-upload(con, rls.mdata.progs, "Implementation", overwrite=TRUE)
-
-a <- ggplot(rls.mdata.progs.ha, aes(x = Year, y = Hectares, fill = Programme)) + 
+a <- ggplot(rls.mdata.progs.ha.plot, aes(x = Year, y = Hectares, fill = Programme)) + 
      opts(title = "Conservation allocation by programme") +
      labs(x = "Year", y = "Hectares", fill = NULL)
 b <- a + geom_bar(stat = "identity", position = "stack") + 
@@ -199,12 +196,83 @@ b <- a + geom_bar(stat = "identity", position = "stack") +
   
 c <- b + facet_grid(Programme ~ .) + opts(legend.position = "none")
 
-rls.mdata.progs.ha.total <- cast(rls.mdata.progs.ha, Year ~ ., sum)
+rls.mdata.progs.ha.total <- cast(rls.mdata.progs.ha.plot, Year ~ ., sum)
 rls.mdata.progs.ha.total <- rename(rls.mdata.progs.ha.total, 
                                    c(`(all)` = "Hectares"))
 
 rls.mdata.progs.ha.total$Programme <- "Total"
-df.m.t <- rbind(rls.mdata.progs.ha.total, rls.mdata.progs.ha)
+df.m.t <- rbind(rls.mdata.progs.ha.total, rls.mdata.progs.ha.plot)
 c1 <- c %+% df.m.t
 c2 <- c1 + facet_grid(Programme ~ ., scale = "free_y")
 c2
+
+# 5. Conservation programmes  and euros (€) --------------------------
+
+# 5.1 Programme implementation in hectares
+rls.file.progs.euro <- file.path(data.folder, 
+                                 "summary_of_funding.xlsx")
+
+rls.wb.progs.euro <- loadWorkbook(rls.file.progs.euro)
+# 5.2 Load the actual data
+rls.data.progs.euro <- readWorksheet.disjoint(rls.wb.progs.euro, 
+                                              sheet = "Cons_euro",
+                                              region = "C1:R18")
+
+# 5.3 Fill in the column names with right years
+colnames(rls.data.progs.euro) <- c("Programme", as.character(1996:2010))
+
+# 5.4 Get rid of some of the insignificant rows and replace NAs with 0s
+rls.data.progs.euro <- subset(rls.data.progs.euro, 
+                              !is.na(rls.data.progs.euro$Programme))
+rls.data.progs.euro[is.na(rls.data.progs.euro)] <- 0
+
+# 5.5 Re-order the data frame based on the programme name, INVERTLY! This is
+# because of quirks in how ggplot2 plots these...
+rls.data.progs.euro <- rls.data.progs.euro[with(rls.data.progs.euro, 
+                                                order(Programme, decreasing=TRUE)), ]
+
+# 5.6 Instead of the programme name (as string), use the ProgrammeID (int) from
+# rls.data.progs
+rls.data.progs.euro.ids <- merge(rls.desc.progs, rls.data.progs.euro, by.x="ShortDesc", 
+                                 by.y="Programme")
+rls.data.progs.euro.ids <- rls.data.progs.euro.ids[,c(2, 4:ncol(rls.data.progs.euro.ids))]
+
+# 5.7 Melt the data for storing...
+rls.mdata.progs.euro <- melt(rls.data.progs.euro.ids, c("ProgrammeID"), 
+                             variable_name="Year")
+
+# 5.8 ... and for plotting
+rls.mdata.progs.euro.plot <- melt(rls.data.progs.euro, c("Programme"), 
+                                  variable_name="Year")
+
+# 5.9 Rename "value" to "Hectares"
+colnames(rls.mdata.progs.euro) <- c(colnames(rls.mdata.progs.euro)[1:2], "Euros")
+colnames(rls.mdata.progs.euro.plot) <- c(colnames(rls.mdata.progs.euro.plot)[1:2], "Euros")
+
+a <- ggplot(rls.mdata.progs.euro.plot, aes(x = Year, y = Euros, fill = Programme)) + 
+  opts(title = "Conservation euros allocation by programme") +
+  labs(x = "Year", y = "Euros", fill = NULL)
+b <- a + geom_bar(stat = "identity", position = "stack") + 
+  scale_fill_brewer(palette = "Paired")
+
+c <- b + facet_grid(Programme ~ .) + opts(legend.position = "none")
+
+rls.mdata.progs.euro.total <- cast(rls.mdata.progs.euro, Year ~ ., sum)
+rls.mdata.progs.euro.total <- rename(rls.mdata.progs.euro.total, 
+                                     c(`(all)` = "Euros"))
+
+rls.mdata.progs.euro.total$Programme <- "Total"
+df.m.t <- rbind(rls.mdata.progs.euro.total, rls.mdata.progs.euro.plot)
+c1 <- c %+% df.m.t
+c2 <- c1 + facet_grid(Programme ~ ., scale = "free_y")
+c2
+
+# 6. Merge hectares and euros ---------------------------------------------
+
+# 6.1 Check that heactare and euro data are of the same length
+rls.mdata.progs <- merge(rls.mdata.progs.ha, rls.mdata.progs.euro, 
+                         by.x=c("ProgrammeID", "Year"), 
+                         by.y=c("ProgrammeID", "Year"))
+
+# 6.2 Upload data into database
+upload(con, rls.mdata.progs, "implementation", overwrite=TRUE)

@@ -22,7 +22,7 @@ connect.rli <- function(config.file="config.R") {
   return(con)
 }
 
-fetch.rli.data <- function(what="*", table, rows) {
+fetch.rli.data <- function(con, what="*", table, rows=-1) {
   # dbSendQuery(con, statement, ...) submits one statement to the database. Eg.
   rs <- dbSendQuery(con, paste("select", what, "from", table))
   # fetch all elements from the result set
