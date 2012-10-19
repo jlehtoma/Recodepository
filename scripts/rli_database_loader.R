@@ -267,7 +267,7 @@ c1 <- c %+% df.m.t
 c2 <- c1 + facet_grid(Programme ~ ., scale = "free_y")
 c2
 
-# 6. Merge hectares and euros ---------------------------------------------
+# 6. Habitats: merge hectares and euros ------------------------------------
 
 # 6.1 Check that heactare and euro data are of the same length
 rls.mdata.progs <- merge(rls.mdata.progs.ha, rls.mdata.progs.euro, 
@@ -276,3 +276,21 @@ rls.mdata.progs <- merge(rls.mdata.progs.ha, rls.mdata.progs.euro,
 
 # 6.2 Upload data into database
 upload(con, rls.mdata.progs, "implementation", overwrite=TRUE)
+
+
+# 7. Species data ----------------------------------------------------------
+
+source("R/postgresql.R")
+
+# Install dependencies if not already installed
+install.deps()
+
+# For examples, see https://code.google.com/p/rpostgresql/
+# NOTE!!! For security reasons config.R file is not included in this repository
+# Ask Joona to send it via email
+
+# Establish a connection
+con <- connect.rli("R/config.R")
+
+# Fetch all the data
+habitat <-  fetch.rli.data(con, table="habitat")

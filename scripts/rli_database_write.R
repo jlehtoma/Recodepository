@@ -29,5 +29,7 @@ if (dbExistsTable(con, table.name)) {
 
 dbWriteTable(con, table.name, test.data)
 
+upload(con, test.data, "test_data", overwrite=TRUE)
+
 ## Closes the connection
 dbDisconnect(con)
