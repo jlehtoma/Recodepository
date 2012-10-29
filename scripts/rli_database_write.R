@@ -9,8 +9,7 @@ install.deps()
 
 # Establish a connection
 con <- connect.rli("R/config.R")
-# Fetch all the data (rows = -1) from table aves
-data <- fetch.rli.data(table="aves", rows=-1)
+
 
 # Create a new table from a R data frame
 table.name <- "testtable"
@@ -29,6 +28,8 @@ if (dbExistsTable(con, table.name)) {
 }
 
 dbWriteTable(con, table.name, test.data)
+
+upload(con, test.data, "test_data", overwrite=TRUE)
 
 ## Closes the connection
 dbDisconnect(con)
