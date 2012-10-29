@@ -62,7 +62,7 @@ for (spp in species) {
                               x.col="gri_e10", 
                               y.col="gri_n10", 
                               z.col="class",
-                              levels=c(1, 2, 3),
+                              levels=c(2, 3),
                               x.offset=10000,
                               y.offset=10000,
                               type.offset="multiply")
