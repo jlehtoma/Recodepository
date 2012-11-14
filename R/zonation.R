@@ -168,7 +168,7 @@ read.curves <- function(file) {
 
 read.admu.curves <- function(file) {
   
-  # First row is (again) malformatted
+  # First row is (again) malformatted 
   
 }
 
