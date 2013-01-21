@@ -1,3 +1,10 @@
+if (!require('ggplot2')) {
+  install.packages('ggplot2')
+}
+if (!require('reshape2')) {
+  install.packages('reshape2')
+}
+
 create.batch.file <- function(filename = "run_multiple.bat", exe="zig2c.exe",
 							  param="-r", dat, spp, output, uc=0.0, ds=0,
 							  am=1.0, win=1, append=FALSE) {
@@ -47,6 +54,25 @@ read.curves <- function(infile) {
 	class(dat) <- "z.curve.plot"
 	return(dat)
 }
+
+read.grp.curves <- function(file) {
+  
+  grp.curves <- read.table(grp.curves.file, header=TRUE)
+
+  
+  # Assign S3 type class
+  class(grp.curves) <- "z.grp.curve.plot"
+
+  return(grp.curves)
+  
+}
+
+read.admu.curves <- function(file) {
+  
+  # First row is (again) malformatted 
+  
+}
+
 
 read.stats <- function(wildcard=".cmp$") {
 
@@ -142,6 +168,34 @@ plot.z.curve.plot <- function(x, y, ...) {
 			lty = rep(1, nlines))
 }
 
+plot.z.grp.curve.plot <- function(x, y, statistic="mean", groups=NULL, 
+                                  monochrome=FALSE, ...) {
+  
+  if (statistic == "mean") {
+    # Starting from 4th column, every 5th column is a mean
+    col.ids <- seq(4, length(x), 5)
+    # Keep also F.lost
+    x <- x[c(1, col.ids)]
+  } else if (statistic == "w.mean") {
+    col.ids <- seq(5, length(x), 5)
+    x <- x[c(1, col.ids)]
+  }
+  # List -> DataFrame
+  x <- as.data.frame(x)
+  
+  # Which groups are actually included
+  grps <- 2:ncol(x)
+  if (!is.null(groups)) {
+    grps <- grps[groups]
+  }
+  
+  # Reshape the DataFrame
+  x.melt <- melt(data = x, id.vars=c(1), measure.vars=grps)
+  
+  p <- ggplot(x.melt, aes(x=value, y=F.lost, group=variable))
+  p + geom_line()
+}
+
 #path <- "C:/Users/jlehtoma/Documents/EclipseWorkspace/Framework/trunk/framework/zonation/correct_output/3/"
 #file <- "op1.curves.txt"
 #df <- read.curves(paste(path, file, sep=""))
@@ -149,28 +203,6 @@ plot.z.curve.plot <- function(x, y, ...) {
 #setwd(path)
 #data <- read.stats()
 #plot(data)
-
-read.curves <- function(file) {
-  
-  # 1st rows header is always incomplete in the file -> header is hard coded
-  # here
-  header <- c("Prop_landscape_lost", "cost_needed_for_top_fraction", 
-              "min_prop_rem", "ave_prop_rem", "W_prop_rem", "ext-1", "ext-2")
-  
-  # Read in the actual data, skipping the first (header) row
-  dat <- read.table(file, header=FALSE, skip=1)
-  
-  # Fill in the needed amount of columnd headers
-  header <- c(header, paste("feature", 1:(ncol(dat) - length(header)), sep="-"))
-  colnames(dat) <- header
-  return(dat)
-}
-
-read.admu.curves <- function(file) {
-  
-  # First row is (again) malformatted 
-  
-}
 
 # Function for reading in Zonation result rasters in various formats
 
