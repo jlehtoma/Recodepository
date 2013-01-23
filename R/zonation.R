@@ -5,23 +5,24 @@ if (!require('reshape2')) {
   install.packages('reshape2')
 }
 
-
-
 # ggplot2 themes ----------------------------------------------------------
 
 curve.theme <- theme(plot.title=element_text(face="bold", size=20),
-                     axis.title.x=element_text(size=18),
-                     axis.title.y=element_text(size=18),
-                     axis.text.x=element_text(size=16),
-                     axis.text.y=element_text(size=16),
-                     legend.text=element_text(size=16),
-                     legend.title=element_text(size=16))
+                     axis.title.x=element_text(size=28),
+                     axis.title.y=element_text(size=28),
+                     axis.text.x=element_text(size=24),
+                     axis.text.y=element_text(size=24),
+                     axis.ticks = element_line(size = 2),
+                     legend.text=element_text(size=24),
+                     legend.title=element_text(size=24),
+                     panel.border = element_rect(size=2, colour="black"))
 
 # Globals -----------------------------------------------------------------
 
-curve.x.title <- "\nProportion of landscape lost"
-curve.y.title <- "Proportion of ditributions remaining\n"
-curve.legend.title <- "Species"
+curve.x.title <- "\nProp. of landscape lost"
+curve.x.title.invert <- "\nProportion of landscape\n under conservation"
+curve.y.title <- "Prop. of ditributions remaining\n"
+curve.legend.title <- "Features"
 
 red <- "#FF0000"
 
@@ -106,8 +107,8 @@ plot.z.comp.plot <- function(x, y, show=TRUE, ...) {
   }
 }
 
-plot.z.curve.plot <- function(x, y, statistic=NULL, groups=NULL, 
-                              monochrome=FALSE, ...) {
+plot.z.curve.plot <- function(x, y, statistic=NULL, features=NULL, 
+                              monochrome=FALSE, invert.x=FALSE, ...) {
 
   if (is.null(statistic)) {
     index <- NULL
@@ -118,9 +119,9 @@ plot.z.curve.plot <- function(x, y, statistic=NULL, groups=NULL,
     }
   
   col.ids <- 8:length(x)
-  # Which groups are actually included
-  if (!is.null(groups)) {
-    col.ids <- col.ids[groups]
+  # Which features are actually included
+  if (!is.null(features)) {
+    col.ids <- col.ids[features]
   }
   col.ids <- c(1, index, col.ids)
   
@@ -138,7 +139,7 @@ plot.z.curve.plot <- function(x, y, statistic=NULL, groups=NULL,
   size.scale <- c(2, rep(1, length(col.ids) - 2))
 
   p <- ggplot(x.melt, aes(x=Prop_landscape_lost, y=value, group=variable))
-  p <- p + geom_line(aes(colour = variable))
+  p <- p + geom_line(aes(colour = variable), size=1.5)
   
   if (monochrome) {
     p <- p + theme_bw() + scale_colour_grey(name=curve.legend.title)
@@ -147,7 +148,15 @@ plot.z.curve.plot <- function(x, y, statistic=NULL, groups=NULL,
     p <- p + scale_color_discrete(name=curve.legend.title)
   }
   
-  p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme
+  if (invert.x) {
+    x.scale <- seq(0, 1, 0.25)
+    p + xlab(curve.x.title.invert) + ylab(curve.y.title) + curve.theme +
+      scale_x_continuous(breaks=x.scale, labels=1-x.scale)
+  } else {
+    p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme
+  }
+  
+  
 }
 
 plot.z.grp.curve.plot <- function(x, y, statistic="mean", groups=NULL, 
@@ -199,7 +208,7 @@ read.curves <- function(infile) {
               "ext-2")                         # 7
   
 	# Populate the rest of the header lines with sp headers and assign it
-	header <- c(header, paste("sp", 1:(ncol(curves) - length(header)), sep=""))
+	header <- c(header, paste("F", 1:(ncol(curves) - length(header)), sep=""))
 	colnames(curves) <- header
   
 	# Assign S3 type class
