@@ -9,7 +9,6 @@ install.deps <- function() {
     install.packages("RPostgreSQL")
     library("RPostgreSQL")
   }
-  
 }
 
 connect.rli <- function(config.file="config.R") {

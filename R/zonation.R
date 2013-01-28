@@ -181,9 +181,8 @@ read.result.rasters <- function(rasters, path=NULL, format=NULL) {
     ext <- format
   }
   
-  results <- stack(sapply(rasters, function(x){named.raster(filepath=file.path(path,
-                                                                               paste("result_", x, ext, sep="")),
-                                                            name=x) }, 
+  results <- stack(sapply(rasters, function(x){raster(file.path(path, x, "output",
+                                                                paste("result_", x, ext, sep=""))) }, 
                           USE.NAMES=F))
   return(results)
 }
@@ -334,4 +333,26 @@ jaccard <- function(raster1, raster2, threshhold, warn.uneven=FALSE) {
   union <- combination >= 1
   
   return(count(intersection, 1) / count(union, 1))
+}
+
+cross.jaccard <- function(results, cut.off) {
+
+  jaccards <- matrix(nrow=nlayers(results), ncol=nlayers(results))
+  
+  for (i in 1:nrow(jaccards)) {
+    for (j in 1:ncol(jaccards)) {
+      if (i == j) {
+        jaccards[i, j] <- 1
+      } else {
+        # See the complement, if it's not NA then the pair has already been
+        # compared
+        if (is.na(jaccards[j, i])) {
+          jaccards[i, j] <- jaccard(results[[i]], results[[2]], cut.off)
+        } else {
+          jaccards[i, j]  <- jaccards[j, i]
+        }
+      }
+    }
+  }
+  return(jaccards)
 }
