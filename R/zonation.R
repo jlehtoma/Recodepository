@@ -1,3 +1,33 @@
+if (!require('ggplot2')) {
+  install.packages('ggplot2')
+}
+if (!require('reshape2')) {
+  install.packages('reshape2')
+}
+
+# ggplot2 themes ----------------------------------------------------------
+
+curve.theme <- theme(plot.title=element_text(face="bold", size=20),
+                     axis.title.x=element_text(size=28),
+                     axis.title.y=element_text(size=28),
+                     axis.text.x=element_text(size=24),
+                     axis.text.y=element_text(size=24),
+                     axis.ticks = element_line(size = 2),
+                     legend.text=element_text(size=24),
+                     legend.title=element_text(size=24),
+                     panel.border = element_rect(size=2, colour="black"))
+
+# Globals -----------------------------------------------------------------
+
+curve.x.title <- "\nProp. of landscape lost"
+curve.x.title.invert <- "\nProportion of landscape\n under conservation"
+curve.y.title <- "Prop. of ditributions remaining\n"
+curve.legend.title <- "Features"
+
+red <- "#FF0000"
+
+# File creation -----------------------------------------------------------
+
 create.batch.file <- function(filename = "run_multiple.bat", exe="zig2c.exe",
 							  param="-r", dat, spp, output, uc=0.0, ds=0,
 							  am=1.0, win=1, append=FALSE) {
@@ -19,33 +49,188 @@ create.spp.file <- function(filename="filelist.spp", weight=1.0, alpha=1.0,
 	cat(paste("\n<<< Created spp file"), filename)
 }
 
+
+# Plotting ----------------------------------------------------------------
+
+plot.z.comp.plot <- function(x, y, show=TRUE, ...) {
+  
+  xrange <- seq(0.1, 1, .1)
+  yrange <- seq(0.1, 1, .1)
+  #browser()
+  # Data structure of x:
+  # list
+  #	-comparison (list)
+  #		-thresh (data frame)
+  #		-total	(num)
+  
+  # Correlations
+  windows()
+  plot(xrange, yrange, type="n",  xlab="Features alone",
+       ylab="Correlation", ylim=c(-0.1, 1.0))
+  
+  abline(h=0, col="grey")
+  comparisons <- length(x)
+  colors <- rainbow(comparisons)
+  linetype <- c(1:comparisons)
+  
+  for (i in 1:comparisons){
+    data <- x[[i]]$thresh
+    #browser()
+    lines(xrange, data$correlation, type="l", lwd=1.5,
+          lty=linetype[i], col=colors[i])
+  }
+  legend("topright", legend=names(x), col=colors,
+         lty = linetype)
+  savePlot("comparisons_correlation.png", type="png")
+  if (!show) {
+    dev.off()
+  }
+  
+  #browser()
+  windows()
+  # Coverages
+  plot(xrange, yrange, type="n",  xlab="Features alone",
+       ylab="Coverage proportion" )
+  abline(h=1, col="grey")
+  for (i in 1:comparisons){
+    data <- x[[i]]$thresh
+    #browser()
+    lines(xrange, data$cover, type="l", lwd=1.5,
+          lty=linetype[i], col=colors[i])
+  }
+  legend("bottomleft", legend=names(x), col=colors,
+         lty = linetype)
+  text(10, 20, "foo")
+  savePlot("comparisons_coverage.png", type="png")
+  if (!show) {
+    dev.off()
+  }
+}
+
+plot.z.curve.plot <- function(x, y, statistic=NULL, features=NULL, 
+                              monochrome=FALSE, invert.x=FALSE, ...) {
+
+  if (is.null(statistic)) {
+    index <- NULL
+  } else if (statistic == "min") {
+      index <- 3
+    } else if (statistic == "mean") {
+      index <- 4
+    }
+  
+  col.ids <- 8:length(x)
+  # Which features are actually included
+  if (!is.null(features)) {
+    col.ids <- col.ids[features]
+  }
+  col.ids <- c(1, index, col.ids)
+  
+  # Subset only the needed columns
+  x <- x[col.ids]
+  
+  # List -> DataFrame
+  x <- as.data.frame(x)
+  
+  # Reshape the DataFrame
+  x.melt <- melt(data = x, id.vars=c(1), measure.vars=2:length(col.ids))
+  
+  # Create the necessary widths
+  #color.scale <- c(red, gray.colors(length(col.ids) - 2))
+  size.scale <- c(2, rep(1, length(col.ids) - 2))
+
+  p <- ggplot(x.melt, aes(x=Prop_landscape_lost, y=value, group=variable))
+  p <- p + geom_line(aes(colour = variable), size=1.5)
+  
+  if (monochrome) {
+    p <- p + theme_bw() + scale_colour_grey(name=curve.legend.title)
+      
+  } else {
+    p <- p + scale_color_discrete(name=curve.legend.title)
+  }
+  
+  if (invert.x) {
+    x.scale <- seq(0, 1, 0.25)
+    p + xlab(curve.x.title.invert) + ylab(curve.y.title) + curve.theme +
+      scale_x_continuous(breaks=x.scale, labels=1-x.scale)
+  } else {
+    p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme
+  }
+  
+  
+}
+
+plot.z.grp.curve.plot <- function(x, y, statistic="mean", groups=NULL, 
+                                  monochrome=FALSE, ...) {
+  
+  if (statistic == "mean") {
+    # Starting from 4th column, every 5th column is a mean
+    col.ids <- seq(4, length(x), 5)
+    # Keep also F.lost
+    x <- x[c(1, col.ids)]
+  } else if (statistic == "w.mean") {
+    col.ids <- seq(5, length(x), 5)
+    x <- x[c(1, col.ids)]
+  }
+  # List -> DataFrame
+  x <- as.data.frame(x)
+  
+  # Which groups are actually included
+  grps <- 2:ncol(x)
+  if (!is.null(groups)) {
+    grps <- grps[groups]
+  }
+  
+  # Reshape the DataFrame
+  x.melt <- melt(data = x, id.vars=c(1), measure.vars=grps)
+  
+  p <- ggplot(x.melt, aes(x=value, y=F.lost, group=variable))
+  p + geom_line()
+}
+
+
+# Reading -----------------------------------------------------------------
+
 read.curves <- function(infile) {
 
-	# Read in all the lines from curves input file
-	# TODO: this is really slow
-	lines <- readLines(infile)
-	# Scan the lines until the header line is found
-	for (i in 1:length(lines)) {
-		if (grepl("Prop_landscape_lost", lines[i])) {
-			# Mark the header line index
-			lines <- i
-		}
-	}
-
-	# Read in the curves file skipping the beginning lines
-	dat <- data.frame(read.table(infile, as.is=TRUE, header=FALSE,
-					             skip=lines))
+	# Read in the curves file skipping the header line, we'll construct this 
+  # later on
+	curves <- read.table(infile, as.is=TRUE, header=FALSE, skip=1)
 	# Standard header entries
-	header <- c("Prop_landscape_lost", "cost_needed_for_top_fraction",
-			"min_prop_rem", "ave_prop_rem", "W_prop_rem", "ext-1", "ext-2")
-	# Populate the rest of the header lines with sp headers.
-	for (i in 1:(ncol(dat) - length(header))) {
-		header <- append(header, paste("sp", i, sep=""))
-	}
-	colnames(dat) <- header
+  
+  # The header has a set of standard components + proportion for each species
+  # remaining at level of removal (created dynamically)
+	header <- c("Prop_landscape_lost",           # 1
+              "cost_needed_for_top_fraction",  # 2
+			        "min_prop_rem",                  # 3
+              "ave_prop_rem",                  # 4
+              "W_prop_rem",                    # 5
+              "ext-1",                         # 6
+              "ext-2")                         # 7
+  
+	# Populate the rest of the header lines with sp headers and assign it
+	header <- c(header, paste("F", 1:(ncol(curves) - length(header)), sep=""))
+	colnames(curves) <- header
+  
 	# Assign S3 type class
-	class(dat) <- "z.curve.plot"
-	return(dat)
+	class(curves) <- "z.curve.plot"
+	return(curves)
+}
+
+read.admu.curves <- function(file) {
+  
+  # First row is (again) malformatted 
+  
+}
+
+read.grp.curves <- function(file) {
+  
+  grp.curves <- read.table(grp.curves.file, header=TRUE)
+  
+  # Assign S3 type class
+  class(grp.curves) <- "z.grp.curve.plot"
+
+  return(grp.curves)
+  
 }
 
 read.stats <- function(wildcard=".cmp$") {
@@ -71,76 +256,6 @@ read.stats <- function(wildcard=".cmp$") {
 
 }
 
-plot.z.comp.plot <- function(x, y, show=TRUE, ...) {
-
-	xrange <- seq(0.1, 1, .1)
-	yrange <- seq(0.1, 1, .1)
-	#browser()
-	# Data structure of x:
-	# list
-	#	-comparison (list)
-	#		-thresh (data frame)
-	#		-total	(num)
-
-	# Correlations
-	windows()
-	plot(xrange, yrange, type="n",  xlab="Features alone",
-			ylab="Correlation", ylim=c(-0.1, 1.0))
-
-	abline(h=0, col="grey")
-	comparisons <- length(x)
-	colors <- rainbow(comparisons)
-	linetype <- c(1:comparisons)
-
-	for (i in 1:comparisons){
-		data <- x[[i]]$thresh
-		#browser()
-		lines(xrange, data$correlation, type="l", lwd=1.5,
-			  lty=linetype[i], col=colors[i])
-	}
-	legend("topright", legend=names(x), col=colors,
-			lty = linetype)
-	savePlot("comparisons_correlation.png", type="png")
-	if (!show) {
-		dev.off()
-	}
-
-	#browser()
-	windows()
-	# Coverages
-	plot(xrange, yrange, type="n",  xlab="Features alone",
-			ylab="Coverage proportion" )
-	abline(h=1, col="grey")
-	for (i in 1:comparisons){
-		data <- x[[i]]$thresh
-		#browser()
-		lines(xrange, data$cover, type="l", lwd=1.5,
-				lty=linetype[i], col=colors[i])
-	}
-	legend("bottomleft", legend=names(x), col=colors,
-			lty = linetype)
-	text(10, 20, "foo")
-	savePlot("comparisons_coverage.png", type="png")
-	if (!show) {
-		dev.off()
-	}
-}
-
-plot.z.curve.plot <- function(x, y, ...) {
-	nlines <- length(x) - 7
-	nelems <- length(x[[8]])
-	p <- palette(rainbow(nlines))
-	plot(x[[8]], type="l", col=p[1], main="Performance curves",
-			ylab="Proportion of ditribution lost",
-			xlab="Fraction of landscape lost",
-			xaxt="n")
-	for (i in 9:length(x)) {
-		points(x[[i]], type="l", col=p[length(x) + 2 - i])
-	}
-	axis(1, at=seq(0, nelems, nelems/10), labels=seq(0.0, 1, 0.1))
-	legend("topright", legend=names(x[8:length(x)]), col=p,
-			lty = rep(1, nlines))
-}
 
 #path <- "C:/Users/jlehtoma/Documents/EclipseWorkspace/Framework/trunk/framework/zonation/correct_output/3/"
 #file <- "op1.curves.txt"
@@ -149,28 +264,6 @@ plot.z.curve.plot <- function(x, y, ...) {
 #setwd(path)
 #data <- read.stats()
 #plot(data)
-
-read.curves <- function(file) {
-  
-  # 1st rows header is always incomplete in the file -> header is hard coded
-  # here
-  header <- c("Prop_landscape_lost", "cost_needed_for_top_fraction", 
-              "min_prop_rem", "ave_prop_rem", "W_prop_rem", "ext-1", "ext-2")
-  
-  # Read in the actual data, skipping the first (header) row
-  dat <- read.table(file, header=FALSE, skip=1)
-  
-  # Fill in the needed amount of columnd headers
-  header <- c(header, paste("feature", 1:(ncol(dat) - length(header)), sep="-"))
-  colnames(dat) <- header
-  return(dat)
-}
-
-read.admu.curves <- function(file) {
-  
-  # First row is (again) malformatted 
-  
-}
 
 # Function for reading in Zonation result rasters in various formats
 
@@ -186,8 +279,6 @@ read.result.rasters <- function(rasters, path=NULL, format=NULL) {
                           USE.NAMES=F))
   return(results)
 }
-
-
 
 # Solution comparison -----------------------------------------------------
 
@@ -289,7 +380,6 @@ selection.coverage <- function(x, y, thresholds) {
 substraction <- function(x, y) {
   return(x - y)
 }
-
 
 # From: http://r-sig-geo.2731867.n2.nabble.com/questions-on-RasterStack-Brick-td5553580.html
 
