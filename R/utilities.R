@@ -1,34 +1,43 @@
-if (!require("XLConnect")){
-  install.packages("XLConnect")
-}
-
-if (!require("plyr")){
-  install.packages("plyr")
-}
-
-readWorksheet.disjoint <- function(wb, sheet, regions, ...) {
-  
-  regions <- unlist(strsplit(regions, ";"))
-  
-  data.regions <- data.frame()
-  
-  for (i in 1:length(regions)) {
-    if (i == 1) {
-      data.regions <- readWorksheet(wb, sheet, region = regions[i], 
-                                   header=TRUE)
-    } else {
-      temp <- readWorksheet(wb, sheet, region = regions[i], header=FALSE)
-      # Use colnames fromt the first read
-      colnames(temp) <- colnames(data.regions)
-      data.regions <- rbind(data.regions, temp)
-    }
+require.package <- function(package, ...) {
+  if (suppressWarnings(!require(package, character.only=TRUE, quietly=TRUE))) { 
+    parent.function <- sys.calls()[[1]][1]
+    message(paste("Function ", parent.function, " requires package: ", package,
+                  ". Package not found, installing...", sep=""))
+    install.packages(package, ...) # Install the packages
+    require(package, character.only=TRUE) # Remember to load the library after installation
   }
+}
+
+require.package("XLConnect")
+require.package("plyr")
+
+barplot.site.summaries <- function(x, main, rowlab, collab, ...) {
   
-  return(data.regions)
+  cols <- brewer.pal(nrow(x), "Greens")
+  
+  rownames(x) <- rowlab
+  colnames(x)  <- collab
+  
+  barplot(x[, 2:ncol(x)], beside=TRUE, col=cols,
+          legend.text=source.names, xlab="Kasvupaikka", ylab="Indeksi", 
+          main=main)
+}
+
+# Function replaces 1+ whitespaces with only 1 whitespace and removes leading
+# and trailing whitespaces
+
+clean.str <- function(str) {
+  
+  str <- gsub("\\s+", " ", str)
+  
+  # returns string w/o leading or trailing whitespace
+  str <- gsub("^\\s+|\\s+$", "", str)
+  return(str)
 }
 
 hierarchy <- function(x) {
   
+   
 }
 
 library(raster)
@@ -86,6 +95,43 @@ histPlot <- function(x, mask.obj=NULL, add.mean=FALSE, add.median=FALSE,
   }
 }
 
+# Function for reading in Zonation result rasters in various formats
+
+read.results <- function(rasters, path=NULL, format=NULL) {
+  if (is.null(format)) {
+    ext <- ".rank.asc"
+  } else {
+    ext <- format
+  }
+  
+  results <- stack(sapply(rasters, function(x){named.raster(filepath=file.path(path,
+                                                                               paste("result_", x, ext, sep="")),
+                                                            name=x) }, 
+                          USE.NAMES=F))
+  return(results)
+}
+
+readWorksheet.disjoint <- function(wb, sheet, regions, ...) {
+  
+  regions <- unlist(strsplit(regions, ";"))
+  
+  data.regions <- data.frame()
+  
+  for (i in 1:length(regions)) {
+    if (i == 1) {
+      data.regions <- readWorksheet(wb, sheet, region = regions[i], 
+                                    header=TRUE)
+    } else {
+      temp <- readWorksheet(wb, sheet, region = regions[i], header=FALSE)
+      # Use colnames fromt the first read
+      colnames(temp) <- colnames(data.regions)
+      data.regions <- rbind(data.regions, temp)
+    }
+  }
+  
+  return(data.regions)
+}
+
 stack.boxplot <- function(x, mask.obj=NULL, show=TRUE, save.dir="") {
   if (class(x) != "RasterStack") {
     stop("x must be an object of class 'RasterStack'!")
@@ -106,33 +152,4 @@ stack.boxplot <- function(x, mask.obj=NULL, show=TRUE, save.dir="") {
   } else {
     name.body <- x@name
   }
-}
-
-
-barplot.site.summaries <- function(x, main, rowlab, collab, ...) {
-  
-  cols <- brewer.pal(nrow(x), "Greens")
-  
-  rownames(x) <- rowlab
-  colnames(x)  <- collab
-  
-  barplot(x[, 2:ncol(x)], beside=TRUE, col=cols,
-          legend.text=source.names, xlab="Kasvupaikka", ylab="Indeksi", 
-          main=main)
-}
-
-# Function for reading in Zonation result rasters in various formats
-
-read.results <- function(rasters, path=NULL, format=NULL) {
-  if (is.null(format)) {
-    ext <- ".rank.asc"
-  } else {
-    ext <- format
-  }
-  
-  results <- stack(sapply(rasters, function(x){named.raster(filepath=file.path(path,
-                                                                               paste("result_", x, ext, sep="")),
-                                                            name=x) }, 
-                          USE.NAMES=F))
-  return(results)
 }

@@ -1,7 +1,7 @@
-library(raster)
-library(rgdal)
-library(plyr)
-library(ggmap)
+require.package("raster")
+require.package("rgdal")
+require.package("plyr")
+require.package("ggmap")
 
 # Map KKJ zones into appropriate EPSG codes
 KKJ.CODES <- list("0" = "+init=epsg:2391", "1" = "+init=epsg:2391", 
@@ -9,9 +9,9 @@ KKJ.CODES <- list("0" = "+init=epsg:2391", "1" = "+init=epsg:2391",
                   "4" = "+init=epsg:2394", 
                   "5" = "+init=epsg:3387")
 
-address2df <- function(df, address.field, ...) {
+address2df <- function(df, id.column, address.field, ...) {
   
-  coords <- .geocode(unlist(df[address.field]), ...)
+  coords <- .geocode(df, id.column, address.field, ...)
   coords <- do.call("rbind", coords)
   return(cbind(df, coords))
   
@@ -19,13 +19,34 @@ address2df <- function(df, address.field, ...) {
 
 address2sppoints <- function(df, address.field, proj4.string=NULL) {
   
-  coords <- .geocode(df[address.field])
+  coords <- .geocode(df, id.column, address.field, ...)
   
   # Google will return coordinates WGS84
   sp.data <- SpatialPointsDataFrame(coords, df, 
                                     proj4string = CRS("+proj=longlat +datum=WGS84"))
   # Is projection needed
   if (proj4.string) {
+    library("rgdal")
+    message(paste("Projecting from WGS84 to", proj4.string))
+    sp.data <- spTransform(sp.data, CRS(proj4.string))
+  }
+  
+  return(sp.data)
+}
+
+df2sppoints <- function(df, lon.field, lat.field, proj4.string=NULL) {
+  
+  
+  if (!lon.field %in% names(df) | !lat.field %in% names(df)) {
+    stop(paste("Provided field names", lon.field, "and/or", lat.field,
+               "not found in data frame columns"))
+  }
+  
+  # Google will return coordinates WGS84
+  sp.data <- SpatialPointsDataFrame(df[, c(lat.field, lon.field)], df, 
+                                    proj4string = CRS("+proj=longlat +datum=WGS84"))
+  # Is projection needed
+  if (!is.null(proj4.string)) {
     library("rgdal")
     message(paste("Projecting from WGS84 to", proj4.string))
     sp.data <- spTransform(sp.data, CRS(proj4.string))
@@ -181,8 +202,11 @@ KKJ2YKJ <- function(sp.obj, from=NA) {
 
 # Private functions -------------------------------------------------------
 
-.geocode <- function(addresses, cache=TRUE) {
+.geocode <- function(df, id.column, address.column, cache=TRUE) {
   
+  addresses <- df[address.column][,1]
+  ids <- df[id.column][,1]
+
   # Check the inputs
   if (typeof(addresses) != "character") {
     stop("Addresses must be provided as a character vector")
@@ -194,6 +218,11 @@ KKJ2YKJ <- function(sp.obj, from=NA) {
   if (cache && !file.exists(cache.dir)) {
     dir.create(cache.dir)
   }
+  
+  coords <- list()
+  
+  # FIXME: cache-files should be named dynamically. Now it's a one-shot thing,
+  # all the cache files are named the same.
   
   if (cache) { 
     if (file.exists(cache.file)) {
@@ -221,11 +250,18 @@ KKJ2YKJ <- function(sp.obj, from=NA) {
                   "will be exceeded."))
   }
   
-  coords <- list()
-  
   for (i in 1:length(addresses)) {
     
-    coords[[addresses[[i]][1]]] <- geocode(addresses[[i]][1])
+    current.coords <- tryCatch(geocode(addresses[i]),
+                               warning = function(war) {
+                                 warning(war)
+                                 message("Could not resolve coordinates, using NA")
+                                 
+                                 return(data.frame(lon=NA, lat=NA))
+                               }
+                              )
+    
+    coords[[ids[i]]] <- current.coords
   }
   
   if (cache) {
