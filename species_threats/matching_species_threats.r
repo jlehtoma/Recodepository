@@ -1,7 +1,7 @@
 ## matching species, threats and Red List category
 ## each species has as many rows as the threats indicated on the Red List for it
 
-library(plyr)
+library("plyr")
 
 ## load data
 sptable <- read.table("data/species_threats.txt", header=T, sep="\t")

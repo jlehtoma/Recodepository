@@ -14,7 +14,7 @@ con <- connect.rli("R/config.R")
 habitat <-  fetch.rli.data(con, table="habitat")
 habitat.threat <- fetch.rli.data(con, table="habitat_threat")
 imp <-  fetch.rli.data(con, table="implementation")
-prog.targets <-  fetch.rli.data(con, table="programme_targets")
+prog.targets <- fetch.rli.data(con, table="programme_targets")
 progs <-  fetch.rli.data(con, table="programmes")
 threat <-  fetch.rli.data(con, table="threat")
 

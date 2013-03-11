@@ -280,17 +280,55 @@ upload(con, rls.mdata.progs, "implementation", overwrite=TRUE)
 
 # 7. Species data ----------------------------------------------------------
 
-source("R/postgresql.R")
+# 7.1 Birds ----------------------------------------------------------------
 
+data.folder <- file.path(data.folder, "Birds")
+
+# Read data in from the Excel in Dropbox folder. Original data from Daniel.
+file.birds  <- file.path(data.folder, "RL237sp_120311_plain.xlsx")
+
+wb.birds <- loadWorkbook(file.birds)
+# 1. Load the actual data
+data.birds <- readWorksheet.disjoint(wb.birds, 
+                                     sheet = "RL237sp_120109",
+                                     region = "A1:X283")
+
+# 2. Create the table holding the species information that the other tables will 
+# refer to
+table.spp <- data.frame(SpeciesID=1:nrow(data.birds), Taxa=c("Birds"),
+                        NameSci=data.birds$Name_lat)
+
+# 3. Create the birds traits table
+trait.columns <- c("BodyMass", "Clutch_size", "Clutches_per_year", 
+                   "Maximum_longevity", "Age_1st_rep", "Adult_survival", 
+                   "MigrationEcology", "MigrationEcology3", "Distribution",
+                   "Game_spp", "Global_Status", "Global_trend", 
+                   "EU_threat_status")
+
+traits.table.birds <- data.frame(ID=1:nrow(data.birds),
+                                 SpeciesID=table.spp$SpeciesID,
+                                 data.birds[,trait.columns])
+
+# Fix the header to be suitable for the database
+library("Hmisc")
+trait.columns <- unlist(lapply(strsplit(trait.columns, "_"), 
+                        function(x){paste(capitalize(x), collapse='')}))
+colnames(traits.table.birds) <- c("ID", "SpeciesID", trait.columns)
+
+# 4. Create the (birds) redlist table
+redlist.table.birds <- data.frame(SpeciesID=table.spp$SpeciesID,
+                                  data.birds[,c("Cat2000", "Cat2010")])
+
+# Upload to the database
+
+source("R/postgresql.R")
 # Install dependencies if not already installed
 install.deps()
-
 # For examples, see https://code.google.com/p/rpostgresql/
 # NOTE!!! For security reasons config.R file is not included in this repository
 # Ask Joona to send it via email
-
 # Establish a connection
 con <- connect.rli("R/config.R")
-
-# Fetch all the data
-habitat <-  fetch.rli.data(con, table="habitat")
+upload(con, table.spp, "species", overwrite=TRUE)
+upload(con, traits.table.birds, "bird_traits", overwrite=TRUE)
+upload(con, redlist.table.birds, "redlist", overwrite=TRUE)

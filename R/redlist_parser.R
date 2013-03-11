@@ -192,4 +192,4 @@ str <- "B1ab(i,ii,v)c(iii,iv)+2b(i)c(ii,v)"
 str2 <- "A2c+3c; B1ab(iii)"
 str3 <- "D2"
 
-cc  <- parse.criteria(str3)
+cc  <- parse.criteria(str)
