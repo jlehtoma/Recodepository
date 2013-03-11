@@ -73,7 +73,7 @@ histPlot <- function(x, mask.obj=NULL, add.mean=FALSE, add.median=FALSE,
   temp.df <- data.frame(data=raster.values)
   m <- ggplot(temp.df, aes(x = data)) + geom_histogram(colour = "white", 
                                                        binwidth=binwidth) + 
-                                                         opts(title = name.body)
+    ggtitle(name.body)
   
   if (add.median) {
     m <- m + geom_vline(xintercept = median(raster.values, na.rm=T), 

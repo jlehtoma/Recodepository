@@ -8,13 +8,13 @@ if (!require('reshape2')) {
 # ggplot2 themes ----------------------------------------------------------
 
 curve.theme <- theme(plot.title=element_text(face="bold", size=20),
-                     axis.title.x=element_text(size=28),
-                     axis.title.y=element_text(size=28),
-                     axis.text.x=element_text(size=24),
-                     axis.text.y=element_text(size=24),
+                     axis.title.x=element_text(size=24),
+                     axis.title.y=element_text(size=24),
+                     axis.text.x=element_text(size=20),
+                     axis.text.y=element_text(size=20),
                      axis.ticks = element_line(size = 2),
-                     legend.text=element_text(size=24),
-                     legend.title=element_text(size=24),
+                     legend.text=element_text(size=20),
+                     legend.title=element_text(size=20),
                      panel.border = element_rect(size=2, colour="black"))
 
 # Globals -----------------------------------------------------------------
@@ -23,6 +23,7 @@ curve.x.title <- "\nProp. of landscape lost"
 curve.x.title.invert <- "\nProportion of landscape\n under conservation"
 curve.y.title <- "Prop. of ditributions remaining\n"
 curve.legend.title <- "Features"
+grp.curve.legend.title <- "Feature groups"
 
 red <- "#FF0000"
 
@@ -107,9 +108,11 @@ plot.z.comp.plot <- function(x, y, show=TRUE, ...) {
   }
 }
 
-plot.z.curve.plot <- function(x, y, statistic=NULL, features=NULL, 
-                              monochrome=FALSE, invert.x=FALSE, ...) {
-
+plot.z.curves <- function(x, statistic=NULL, features=NULL, monochrome=FALSE, 
+                          invert.x=FALSE, ...) {
+  
+  #browser()
+  
   if (is.null(statistic)) {
     index <- NULL
   } else if (statistic == "min") {
@@ -155,24 +158,22 @@ plot.z.curve.plot <- function(x, y, statistic=NULL, features=NULL,
   } else {
     p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme
   }
-  
-  
 }
 
-plot.z.grp.curve.plot <- function(x, y, statistic="mean", groups=NULL, 
-                                  monochrome=FALSE, ...) {
+plot.z.grp.curves <- function(x, statistic="mean", groups=NULL, 
+                                  monochrome=FALSE, invert.x=FALSE, ...) {
   
-  if (statistic == "mean") {
-    # Starting from 4th column, every 5th column is a mean
-    col.ids <- seq(4, length(x), 5)
+  # Set the statistics indeces
+  index <- list("min"=3, "mean"=4, "max"=5, "w.mean"=6, "ext2"=7)
+  
+  if (statistic %in% names(index)) {
+    # Starting from nth column, every 5th column is the same statistic
+    col.ids <- seq(index[[statistic]], length(x), 5)
     # Keep also F.lost
     x <- x[c(1, col.ids)]
-  } else if (statistic == "w.mean") {
-    col.ids <- seq(5, length(x), 5)
-    x <- x[c(1, col.ids)]
+  } else {
+    stop(paste("Unkown statistic type:", statistic))
   }
-  # List -> DataFrame
-  x <- as.data.frame(x)
   
   # Which groups are actually included
   grps <- 2:ncol(x)
@@ -184,7 +185,23 @@ plot.z.grp.curve.plot <- function(x, y, statistic="mean", groups=NULL,
   x.melt <- melt(data = x, id.vars=c(1), measure.vars=grps)
   
   p <- ggplot(x.melt, aes(x=value, y=F.lost, group=variable))
-  p + geom_line()
+  p <- p + geom_line(aes(colour = variable), size=1.5)
+  
+  if (monochrome) {
+    p <- p + theme_bw() + scale_colour_grey(name=grp.curve.legend.title)
+    
+  } else {
+    p <- p + scale_color_discrete(name=grp.curve.legend.title)
+  }
+  
+  if (invert.x) {
+    x.scale <- seq(0, 1, 0.25)
+    p + xlab(curve.x.title.invert) + ylab(curve.y.title) + curve.theme +
+      scale_x_continuous(breaks=x.scale, labels=1-x.scale)
+  } else {
+    p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme
+  }
+  
 }
 
 
@@ -210,9 +227,6 @@ read.curves <- function(infile) {
 	# Populate the rest of the header lines with sp headers and assign it
 	header <- c(header, paste("F", 1:(ncol(curves) - length(header)), sep=""))
 	colnames(curves) <- header
-  
-	# Assign S3 type class
-	class(curves) <- "z.curve.plot"
 	return(curves)
 }
 
@@ -221,14 +235,21 @@ read.admu.curves <- function(file) {
   # First row is (again) malformatted 
   
 }
-
+  
 read.grp.curves <- function(file) {
-  
-  grp.curves <- read.table(grp.curves.file, header=TRUE)
-  
-  # Assign S3 type class
-  class(grp.curves) <- "z.grp.curve.plot"
 
+  grp.curves <- read.table(file, header=TRUE)
+  
+  # standard part of the header
+  header <- c("F.lost", "TF_cost")
+  
+  # Repeating parts of the group curves header
+  rep.header <- c("min", "mean", "max", "w.mean", "ext2")
+  times <- (ncol(grp.curves) - length(header)) / length(rep.header)
+  rep.header <- paste(rep(rep.header, times), rep(1:times, each=length(rep.header)), sep="-")
+  header <- c(header, rep.header)
+  colnames(grp.curves) <- header
+  
   return(grp.curves)
   
 }

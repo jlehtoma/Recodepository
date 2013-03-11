@@ -2,7 +2,9 @@
 .Rhistory
 .RData
 *.Rproj
+.directory
+.dropbox
+.gitignore
 README.html
 R/config.R
-data/*.xsl
-data/*.xlsx
+data/*

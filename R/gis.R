@@ -1,9 +1,9 @@
 library(raster)
 
-workspace <- "E:/Data/Metsakeskukset/Etela-Savo/Zonation/ESMK/data/mlvmi"
+workspace <- "C:\\Data\\ESMK\\data\\maski\\CorrectExtent"
 # Oletus: rasterit ovat yllä mainitussa kansiossa
-org.raster.file <- "Päätyypit_kangas_turve.img"
-agg.raster.file <- "Päätyypit_kangas_turve_60.img"
+org.raster.file <- "kasvupaikka_5cl.img"
+agg.raster.file <- "kasvupaikka_5cl_60.img"
 
 setwd(workspace)
 
