@@ -1,1 +1,0 @@
-setGeneric("getVariant", function(object, index) standardGeneric("getVariant"))

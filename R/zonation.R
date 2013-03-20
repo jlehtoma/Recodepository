@@ -109,17 +109,17 @@ plot.z.comp.plot <- function(x, y, show=TRUE, ...) {
 }
 
 plot.z.curves <- function(x, statistic=NULL, features=NULL, monochrome=FALSE, 
-                          invert.x=FALSE, ...) {
+                          invert.x=FALSE, labels=NULL,  ...) {
   
   #browser()
   
   if (is.null(statistic)) {
     index <- NULL
   } else if (statistic == "min") {
-      index <- 3
-    } else if (statistic == "mean") {
-      index <- 4
-    }
+    index <- 3
+  } else if (statistic == "mean") {
+    index <- 4
+  }
   
   col.ids <- 8:length(x)
   # Which features are actually included
@@ -140,13 +140,13 @@ plot.z.curves <- function(x, statistic=NULL, features=NULL, monochrome=FALSE,
   # Create the necessary widths
   #color.scale <- c(red, gray.colors(length(col.ids) - 2))
   size.scale <- c(2, rep(1, length(col.ids) - 2))
-
+  
   p <- ggplot(x.melt, aes(x=Prop_landscape_lost, y=value, group=variable))
   p <- p + geom_line(aes(colour = variable), size=1.5)
   
   if (monochrome) {
     p <- p + theme_bw() + scale_colour_grey(name=curve.legend.title)
-      
+    
   } else {
     p <- p + scale_color_discrete(name=curve.legend.title)
   }
@@ -161,7 +161,8 @@ plot.z.curves <- function(x, statistic=NULL, features=NULL, monochrome=FALSE,
 }
 
 plot.z.grp.curves <- function(x, statistic="mean", groups=NULL, 
-                                  monochrome=FALSE, invert.x=FALSE, ...) {
+                              monochrome=FALSE, invert.x=FALSE, 
+                              labels=NULL, ...) {
   
   # Set the statistics indeces
   index <- list("min"=3, "mean"=4, "max"=5, "w.mean"=6, "ext2"=7)
@@ -185,23 +186,34 @@ plot.z.grp.curves <- function(x, statistic="mean", groups=NULL,
   x.melt <- melt(data = x, id.vars=c(1), measure.vars=grps)
   
   p <- ggplot(x.melt, aes(x=value, y=F.lost, group=variable))
-  p <- p + geom_line(aes(colour = variable), size=1.5)
+  p <- p + geom_line(aes(colour = variable))
   
-  if (monochrome) {
-    p <- p + theme_bw() + scale_colour_grey(name=grp.curve.legend.title)
-    
+  
+  if (is.null(labels)) {
+    if (monochrome) {
+      p <- p + scale_colour_grey(name=grp.curve.legend.title) + theme_bw() 
+    } else {
+      p <- p + scale_colour_brewer(name=grp.curve.legend.title) 
+    }
   } else {
-    p <- p + scale_color_discrete(name=grp.curve.legend.title)
+    if (monochrome) {
+      p <- p + scale_colour_grey(name=grp.curve.legend.title, labels=labels) +
+        theme_bw() 
+    } else {
+      p <- p + scale_colour_brewer(name=grp.curve.legend.title, labels=labels,
+                                   type = "qual", palette=2)
+      theme_update(curve.theme)
+    }
   }
   
   if (invert.x) {
     x.scale <- seq(0, 1, 0.25)
-    p + xlab(curve.x.title.invert) + ylab(curve.y.title) + curve.theme +
-      scale_x_continuous(breaks=x.scale, labels=1-x.scale)
+    p <- p + scale_x_continuous(breaks=x.scale, labels=1-x.scale)
   } else {
-    p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme
+    
   }
-  
+  p + xlab(curve.x.title) + ylab(curve.y.title) + curve.theme + 
+    ggtitle(statistic)
 }
 
 

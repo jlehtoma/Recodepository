@@ -280,12 +280,27 @@ upload(con, rls.mdata.progs, "implementation", overwrite=TRUE)
 
 # 7. Species data ----------------------------------------------------------
 
-# 7.1 Birds ----------------------------------------------------------------
+# 7.1 All species
 
-data.folder <- file.path(data.folder, "Birds")
+# construct the species table for ALL RED LISTED species. This data can be
+# later on for such things as threats etc.
+
+# 1. Load the actual data
+file.rl.spp  <- file.path(data.folder, "Red_list_2010.xls")
+wb.rl.spp <- loadWorkbook(file.spp)
+data.rl.spp <- readWorksheet.disjoint(wb.spp, 
+                                   sheet = "Names_in_separate_columns",
+                                   region = "A1:N4961")
+
+# Subset only particular columns
+table.rl.spp <- data.frame(SpeciesID=1:nrow(data.spp), Taxa=data.spp$Eliöryhmä,
+                           NameSci=data.spp$Tieteellinen.nimi,
+                           NameFin=data.spp$Suomalainen.nimi)
+
+# 7.2 Birds ----------------------------------------------------------------
 
 # Read data in from the Excel in Dropbox folder. Original data from Daniel.
-file.birds  <- file.path(data.folder, "RL237sp_120311_plain.xlsx")
+file.birds  <- file.path(data.folder, "Birds", "RL237sp_120311_plain.xlsx")
 
 wb.birds <- loadWorkbook(file.birds)
 # 1. Load the actual data
@@ -302,7 +317,7 @@ table.spp <- data.frame(SpeciesID=1:nrow(data.birds), Taxa=c("Birds"),
 trait.columns <- c("BodyMass", "Clutch_size", "Clutches_per_year", 
                    "Maximum_longevity", "Age_1st_rep", "Adult_survival", 
                    "MigrationEcology", "MigrationEcology3", "Distribution",
-                   "Game_spp", "Global_Status", "Global_trend", 
+                   "ElYmpEnsiSij",  "Game_spp", "Global_Status", "Global_trend", 
                    "EU_threat_status")
 
 traits.table.birds <- data.frame(ID=1:nrow(data.birds),
@@ -313,11 +328,16 @@ traits.table.birds <- data.frame(ID=1:nrow(data.birds),
 library("Hmisc")
 trait.columns <- unlist(lapply(strsplit(trait.columns, "_"), 
                         function(x){paste(capitalize(x), collapse='')}))
+# Replace primary habitat field name ElYmpEnsiSij -> HabitatFirst
+trait.columns[which(trait.columns == "ElYmpEnsiSij")] <- "HabitatFirst"
+
 colnames(traits.table.birds) <- c("ID", "SpeciesID", trait.columns)
 
 # 4. Create the (birds) redlist table
+table.rl.birds <- subset(table.rl.spp, Taxa == "AV")
+# Drop the taxa column
 redlist.table.birds <- data.frame(SpeciesID=table.spp$SpeciesID,
-                                  data.birds[,c("Cat2000", "Cat2010")])
+                                  data.birds[,c("Backcast2000", "Cat2010")])
 
 # Upload to the database
 
