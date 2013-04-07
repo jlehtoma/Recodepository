@@ -307,9 +307,8 @@ read.result.rasters <- function(rasters, path=NULL, format=NULL) {
     ext <- format
   }
   
-  results <- stack(sapply(rasters, function(x){raster(file.path(path, x, "output",
-                                                                paste("result_", x, ext, sep=""))) }, 
-                          USE.NAMES=F))
+  results <- raster::stack(lapply(rasters, function(x){raster(file.path(path, x, "output",
+                                                                paste("result_", x, ext, sep=""))) }))
   return(results)
 }
 
