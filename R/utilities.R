@@ -63,7 +63,14 @@ readWorksheet.disjoint <- function(wb, sheet, regions, ...) {
                                     header=TRUE)
     } else {
       temp <- readWorksheet(wb, sheet, region = regions[i], header=FALSE)
-      # Use colnames fromt the first read
+      
+      if (ncol(temp) != ncol(data.regions)) {
+      
+        # If the whole reqion is NA, then populate 
+        nas <- data.frame(matrix(NA, nrow(temp), ncol(data.regions) - ncol(temp)))
+        temp <- cbind(temp, nas)
+      }
+      # Use colnames from the first read
       colnames(temp) <- colnames(data.regions)
       data.regions <- rbind(data.regions, temp)
     }

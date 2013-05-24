@@ -41,6 +41,8 @@ rlh.file.threats <- file.path(data.folder,
 
 rlh.wb.threats <- loadWorkbook(rlh.file.threats)
 # 1. Load the actual data
+rlh.data.threats <- readWorksheet(rlh.wb.threats, 
+                                           sheet = "Habitat threats")
 rlh.data.threats <- readWorksheet.disjoint(rlh.wb.threats, 
                                            sheet = "Habitat threats",
                                            region = "A1:Z26;A30:Z77;A82:Z82")
