@@ -38,7 +38,7 @@ data.folder <- ("data")
 
 rlh.file.threats <- file.path(data.folder, 
                               "Habitats_RL and Habitat_threats 0428.xlsx")
-
+  
 rlh.wb.threats <- loadWorkbook(rlh.file.threats)
 # 1. Load the actual data
 rlh.data.threats <- readWorksheet(rlh.wb.threats, 

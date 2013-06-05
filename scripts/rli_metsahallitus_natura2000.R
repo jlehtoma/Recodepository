@@ -89,10 +89,19 @@ names(n2000.types2) <- c("Description", "Count", "Area", "Type")
 
 n2000.types <- rbind(n2000.types1, n2000.types2)
 
+# Do we have any cases where we have type 2 but not type 1?
+sum(!is.na(df.mh$NATURA_TYYPPI1) & is.na(df.mh$NATURA_TYYPPI2))
+
 # Remove the NA rows
 n2000.types <- n2000.types[!is.na(n2000.types$Description),]
 # Order by count
 n2000.types <- n2000.types[with(n2000.types, order(Count, decreasing=TRUE)), ]
+
+# Over all count and summed areas (use only type 1 since there are only 7
+# cases where we have type 2 but not type 1)
+total.count <- sum(subset(n2000.types, Type == "1")$Count)
+# Hectares
+total.area <- sum(subset(n2000.types, Type == "1")$Area) / 10000
 
 # Plot the types
 p <- ggplot(n2000.types, aes(x=Description, y=log(Count), fill=Type)) +

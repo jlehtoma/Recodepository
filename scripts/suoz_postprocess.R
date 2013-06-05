@@ -1,9 +1,25 @@
 library(zonator)
+library(rgdal)
 
 # SuoZ --------------------------------------------------------------------
+# Which variants are to be included
 variants <- paste0("^", c(36:43, 45:47))
-root.path <- "C:/suoZ/suoajot"
+# Where to look for the variant result folders
+root.path <- "Z:/JOONA/suoZ/suoajot"
 setwd(root.path)
+
+# Reference PPA unit shapefile to which PPA information is to be joined
+# Whole area
+PPA.units.file <- "Z:/JOONA/suoZ/data/Z4_dissolved.shp"
+PPA.units.sp <- readOGR(PPA.units.file, ogrListLayers(PPA.units.file))
+# Northern parts
+PPA.units.north.file <- "Z:/JOONA/suoZ/data/Z4_dissolved_pohjoinen.shp"
+PPA.units.north.sp <- readOGR(PPA.units.north.file, 
+                              ogrListLayers(PPA.units.north.file))
+# Southern parts
+PPA.units.south.file <- "Z:/JOONA/suoZ/data/Z4_dissolved_etela.shp"
+PPA.units.south.sp <- readOGR(PPA.units.south.file, 
+                              ogrListLayers(PPA.units.south.file))
 
 # ESMK --------------------------------------------------------------------
 variants <- paste0("^", c(21:27))
@@ -28,9 +44,50 @@ for (variant in variants) {
                                                      "nwout2.csv"))
     output3 <- file.path(dirname(nwout.file), paste0("result_", variant.folder,
                                                      "nwout3.csv"))
+    
+    # Output the tables as CSV files
     write.table(dat[[1]], file=output1, sep=";", row.names=FALSE)
     write.table(dat[[2]], file=output2, sep=";", row.names=FALSE)
     write.table(dat[[3]], file=output3, sep=";", row.names=FALSE)
+    
+    # Join the tables to existing reference spatial data
+    if (grepl("etela", nwout.file)) {
+      reference.data.sp <- PPA.units.south.sp
+      grid.code <- "SGRIDCODE"
+    } else if (grepl("pohjoinen", nwout.file)) {
+      reference.data.sp <- PPA.units.north.sp
+      grid.code <- "NGRIDCODE"
+    } else {
+      reference.data.sp <- PPA.units.sp
+      grid.code <- "GRIDCODE"
+    }
+    
+    # Make copies of the reference data as the same shapefile needs to be joined
+    # twice. Numbering corresponds to dat list indexes.
+    reference.data1.sp <- reference.data.sp
+    reference.data3.sp <- reference.data.sp
+    
+    reference.data1.sp@data <- merge(reference.data1.sp@data, dat[[1]],
+                                    by.x=grid.code, by.y="Unit")
+    reference.data3.sp@data <- merge(reference.data3.sp@data, dat[[3]],
+                                     by.x=grid.code, by.y="Unit_number")
+    
+    output1.sp <- gsub(".csv", ".shp", output1)
+    output3.sp <- gsub(".csv", ".shp", output3)
+    
+    if (file.exists(output1.sp)) {
+      file.remove(output1.sp)
+    }
+    if (file.exists(output3.sp)) {
+      file.remove(output3.sp)
+    }
+    
+    writeOGR(reference.data1.sp, output1.sp, layer=gsub(".shp", "", output1.sp),
+             driver="ESRI Shapefile")
+    message(paste("Wrote shapefile", output1.sp))
+    writeOGR(reference.data3.sp, output3.sp, layer=gsub(".shp", "", output3.sp),
+             driver="ESRI Shapefile")
+    message(paste("Wrote shapefile", output3.sp))
   }
 }
 
