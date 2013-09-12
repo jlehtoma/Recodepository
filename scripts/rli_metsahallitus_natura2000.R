@@ -13,7 +13,7 @@ if (!require("plyr")) {
 # 1. Read in the shapefile data --------------------------------------------
 
 # Set up the data source holding the Metsähallitus vector data
-dsn.folder <- "H:/Data/Metsahallitus/ArcGIS/Shapefiles/2010"
+dsn.folder <- "F:/Data/Metsahallitus/ArcGIS/Shapefiles/2010"
 dsn <- file.path(dsn.folder, "Biotooppi_p.shp") 
 
 # Get the available layer
