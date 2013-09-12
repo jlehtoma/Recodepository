@@ -14,6 +14,9 @@ if (!require("plyr")) {
 
 # Set up the data source holding the Metsähallitus vector data
 dsn.folder <- "F:/Data/Metsahallitus/ArcGIS/Shapefiles/2010"
+# OR
+dsn.folder <- "/var/run/media/jlehtoma/DataVault/Data/Metsahallitus/ArcGIS/Shapefiles/2010"
+
 dsn <- file.path(dsn.folder, "Biotooppi_p.shp") 
 
 # Get the available layer
@@ -110,11 +113,11 @@ p
 
 # Order by area
 n2000.types <- n2000.types[with(n2000.types, order(Area, decreasing=TRUE)), ]
-p <- ggplot(n2000.types, aes(x=Description, y=log(Area), fill=Type)) +
+p2 <- ggplot(n2000.types, aes(x=Description, y=log(Area), fill=Type)) +
   geom_bar(stat="identity", position="dodge") + coord_flip()
-p
+p2
 
 # Plot count against area
-p <- ggplot(n2000.types, aes(x=log(Count), y=log(Area), color=Type)) + 
+p3 <- ggplot(n2000.types, aes(x=log(Count), y=log(Area), color=Type)) + 
   geom_point(size=3)
-p
+p3
