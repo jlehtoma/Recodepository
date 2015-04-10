@@ -14,7 +14,7 @@ setwd("C:/HY-Data/BURGASRI/Dropbox/Recodepository/data/Birds")
 # RL <- read.table(file = "C:/HY-Data/BURGASRI/Dropbox/Recodepository/data/Birds/RL237sp_120524_plain.txt", 
 #                  header = T, dec=".")
 
-RL <- read.xlsx("C:/HY-Data/BURGASRI/Dropbox/Recodepository/data/Birds/RL237sp_120524_plain.xlsx",
+RL <- read.xlsx("C:/HY-Data/BURGASRI/Dropbox/Recodepository/data/Birds/RL237sp_110613_plain.xlsx",
                 1) # pick sheet n.1
 str(RL)
 names(RL)

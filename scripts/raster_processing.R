@@ -14,7 +14,7 @@ ndvi_function <- function(x,...) {
   return(ndvi)
 }
 
-sfQuickInit(cpus=1)
+sfQuickInit(cpus=4)
 system.time(tahoe_ndvi <- focal_hpc(x=tahoe_highrez, fun=ndvi_function))
 sfQuickStop()
 

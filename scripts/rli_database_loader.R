@@ -289,15 +289,16 @@ upload(con, rls.mdata.progs, "implementation", overwrite=TRUE)
 
 # 1. Load the actual data
 file.rl.spp  <- file.path(data.folder, "Red_list_2010.xls")
-wb.rl.spp <- loadWorkbook(file.spp)
-data.rl.spp <- readWorksheet.disjoint(wb.spp, 
+wb.rl.spp <- loadWorkbook(file.rl.spp)
+data.rl.spp <- readWorksheet.disjoint(wb.rl.spp, 
                                    sheet = "Names_in_separate_columns",
                                    region = "A1:N4961")
 
 # Subset only particular columns
-table.rl.spp <- data.frame(SpeciesID=1:nrow(data.spp), Taxa=data.spp$Eliöryhmä,
-                           NameSci=data.spp$Tieteellinen.nimi,
-                           NameFin=data.spp$Suomalainen.nimi)
+table.rl.spp <- data.frame(SpeciesID=1:nrow(data.rl.spp), 
+                           Taxa=data.rl.spp$Eliöryhmä,
+                           NameSci=data.rl.spp$Tieteellinen.nimi,
+                           NameFin=data.rl.spp$Suomalainen.nimi)
 
 # 7.2 Birds ----------------------------------------------------------------
 
@@ -313,14 +314,13 @@ data.birds <- readWorksheet.disjoint(wb.birds,
 # 2. Create the table holding the species information that the other tables will 
 # refer to
 table.spp <- data.frame(SpeciesID=1:nrow(data.birds), Taxa=c("Birds"),
-                        NameSci=data.birds$Name_lat)
+                        NameSci=data.birds$NameSci)
 
 # 3. Create the birds traits table
-trait.columns <- c("BodyMass", "Clutch_size", "Clutches_per_year", 
-                   "Maximum_longevity", "Age_1st_rep", "Adult_survival", 
+trait.columns <- c("BodyMass", "ClutchSize", "ClutchesPerYear", 
+                   "MaximumLongevity", "Age1stRep", "AdultSurvival", 
                    "MigrationEcology", "MigrationEcology3", "Distribution",
-                   "ElYmpEnsiSij",  "Game_spp", "Global_Status", "Global_trend", 
-                   "EU_threat_status")
+                   "HabitatFirst")
 
 traits.table.birds <- data.frame(ID=1:nrow(data.birds),
                                  SpeciesID=table.spp$SpeciesID,
@@ -330,8 +330,6 @@ traits.table.birds <- data.frame(ID=1:nrow(data.birds),
 library("Hmisc")
 trait.columns <- unlist(lapply(strsplit(trait.columns, "_"), 
                         function(x){paste(capitalize(x), collapse='')}))
-# Replace primary habitat field name ElYmpEnsiSij -> HabitatFirst
-trait.columns[which(trait.columns == "ElYmpEnsiSij")] <- "HabitatFirst"
 
 colnames(traits.table.birds) <- c("ID", "SpeciesID", trait.columns)
 
