@@ -24,6 +24,8 @@ qtbl %<>% mutate(overlap_perc = round(overlap_ha / prog_area_ha * 100, 2)) %>%
   arrange(programme) %>% 
   select(programme, prog_area_ha, overlap_ha, overlap_perc)
 
+write.table(qtbl, "data_public/lso_lsa_overlap.csv", sep = ",", 
+            row.names = FALSE)
 
 # Test the numbers from intersected shapefiles ----------------------------
 
